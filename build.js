@@ -10,33 +10,30 @@ var format = new require('fomatto').Formatter();
 // Garden Generator -------------------------------------------------------------
 // ------------------------------------------------------------------------------
 var Garden = Class(function(options) {
-    var languages = fs.readdirSync(options.dir);
 
     this.languages = {};
     this.options = options;
     this.options.language = this.json([this.options.dir, 'language.json'].join('/'));
 
-    var that = this;
+    var languages = fs.readdirSync(options.dir);
     languages.forEach(function(lang) {
-        if (fs.statSync(that.options.dir + '/' + lang).isDirectory()) {
-            that.log('Parsing language "{}"...', lang);
-            that.lang = {
-                id: lang,
-                navigation: [],
-                index: []
-            };
+        if (!fs.statSync(this.options.dir + '/' + lang).isDirectory()) return;
+        this.log('Parsing language "{}"...', lang);
+        var langData = {
+            id: lang,
+            navigation: [],
+            index: []
+        };
 
-            if (that.loadIndex()) {
-                that.languages[lang] = that.lang;
-                that.log('    Done.');
+        if (this.loadIndex(langData)) {
+            this.languages[lang] = langData;
+            this.log('    Done.');
 
-            } else {
-                that.log('    Error: Could not find "index.json"!');
-            }
+        } else {
+            this.log('    Error: Could not find "index.json"!');
         }
-    });
+    },this);
 
-    delete this.lang;
     this.log('');
     this.generateAll();
 
@@ -45,39 +42,37 @@ var Garden = Class(function(options) {
         console.log(format.apply(null, arguments));
     },
 
-    loadIndex: function() {
-        var that = this;
-        this.lang.index = this.json([this.options.dir,
-                                     this.lang.id, 'index.json'].join('/'));
+    loadIndex: function(lang) {
+        lang.index = this.json([this.options.dir,
+                                     lang.id, 'index.json'].join('/'));
 
-        if (this.lang.index === null) {
+        if (lang.index === null) {
             return false;
         }
 
-        that.lang.title = that.lang.index.langTitle;
-        this.lang.navigation = [];
-        this.lang.index.sections.forEach(function(section, i) {
-            that.loadSection(section);
-            that.lang.navigation.push({
+        this.lang.title = this.lang.index.langTitle;
+        lang.navigation = [];
+        lang.index.sections.forEach(function(section, i) {
+            this.loadSection(section,lang);
+            this.lang.navigation.push({
                 title: section.title,
                 link: section.dir,
                 articles: section.articles,
                 parsed: section.parsed
             });
-        });
+        },this);
         return true;
     },
 
-    loadSection: function(section) {
-        var files = fs.readdirSync(this.folder(section.dir));
+    loadSection: function(section,lang) {
+        var files = fs.readdirSync(this.folder(section.dir,lang));
         section.parsed = {};
         section.link = section.dir;
 
-        var that = this;
         section.articles = section.articles || [];
         section.articles.concat('index').forEach(function(article, e) {
             if (files.indexOf(article + '.md') !== -1) {
-                var parsed = that.parseArticle(that.md(section.dir, article));
+                var parsed = this.parseArticle(this.md(section.dir, article));
                 section.parsed[article] = parsed;
                 if (section.articles.indexOf(article) !== -1) {
                     section.articles[e] = {
@@ -132,8 +127,8 @@ var Garden = Class(function(options) {
         return fs.readFileSync(file).toString();
     },
 
-    folder: function(section) {
-        return [this.options.dir, this.lang.id, section].join('/');
+    folder: function(section,lang) {
+        return [this.options.dir, lang.id, section].join('/');
     },
 
     render: function(language, template, out) {
@@ -178,8 +173,6 @@ var Garden = Class(function(options) {
     },
 
     generate: function(lang) {
-        var that = this;
-
         var dir = [this.options.out];
         if (lang !== this.options.language.default) {
             dir.push(lang);
@@ -190,8 +183,8 @@ var Garden = Class(function(options) {
             if (!exists) {
                 fs.mkdirSync(dir, '777');
             }
-            that.render(lang, that.options.template, dir + '/index.html');
-        });
+            this.render(lang, this.options.template, dir + '/index.html');
+        }.bind(this));
     }
 });
 
