@@ -1,7 +1,7 @@
 var fs = require('fs'),
     path = require('path'),
     jade = require('jade'),
-    md = require('node-markdown'),
+    md = require('marked'),
     Class = require('neko').Class;
 
 var format = new require('fomatto').Formatter();
@@ -94,7 +94,7 @@ var Garden = Class(function(options) {
     parseArticle: function(text) {
         var title = text.substring(0, text.indexOf('\n'));
         text = text.substring(title.length);
-        title = md.Markdown(title.replace(/\#/g, '').trim());
+        title = md(title.replace(/\#/g, '').trim());
         text = this.toMarkdown(text);
 
         var parts = text.split('<h3>');
@@ -112,7 +112,7 @@ var Garden = Class(function(options) {
     },
 
     toMarkdown: function(text) {
-        text = md.Markdown(text).replace(/'/g,'&#39;');
+        text = md(text).replace(/'/g,'&#39;');
         text = text.replace(/<blockquote>/g, '<aside>').
                     replace(/<\/blockquote>/g, '</aside>');
 
