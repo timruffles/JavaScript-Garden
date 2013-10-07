@@ -98,11 +98,9 @@ var Garden = Class(function(options) {
         text = this.toMarkdown(text);
 
         var parts = text.split('<h3>');
-        var subs = [];
-        for(var i = 0, l = parts.length; i < l; i++) {
-            var sub = parts[i];
-            subs.push((i > 0 ? '<h3>' : '') + sub);
-        }
+        var subs = parts.map(function(sub,i) {
+          return i > 0 ? '<h3>' : '') + sub;
+        });
 
         return {
             title: title.substring(3, title.length - 4),
@@ -140,36 +138,35 @@ var Garden = Class(function(options) {
 
     render: function(language, template, out) {
         var lang = this.languages[language];
-        if (lang) {
-            this.log('Rendering "{}" to "{}"...', language, out);
+        if(!lang) return;
+        this.log('Rendering "{}" to "{}"...', language, out);
 
-            var languages = [];
-            for(var i in this.languages) {
-                if (this.languages.hasOwnProperty(i)) {
-                    if (this.options.language.listed.indexOf(i) !== -1) {
-                        languages.push(this.languages[i]);
-                    }
+        var languages = [];
+        for(var i in this.languages) {
+            if (this.languages.hasOwnProperty(i)) {
+                if (this.options.language.listed.indexOf(i) !== -1) {
+                    languages.push(this.languages[i]);
                 }
             }
-
-            var options = {
-                pathPrefix: this.options.pathPrefix,
-                baseLanguage: this.options.language.default,
-                language: language,
-                languages: languages,
-                title: lang.index.title,
-                description: lang.index.description,
-                navigation: lang.navigation,
-                sections: lang.index.sections,
-                top: lang.navigation[0]
-            };
-
-            var jadefile = fs.readFileSync(template);
-            var jadetemplate = jade.compile (jadefile);
-            var html = jadetemplate(options);
-            fs.writeFileSync(out, html);
-            this.log('    Done.');
         }
+
+        var options = {
+            pathPrefix: this.options.pathPrefix,
+            baseLanguage: this.options.language.default,
+            language: language,
+            languages: languages,
+            title: lang.index.title,
+            description: lang.index.description,
+            navigation: lang.navigation,
+            sections: lang.index.sections,
+            top: lang.navigation[0]
+        };
+
+        var jadefile = fs.readFileSync(template);
+        var jadetemplate = jade.compile (jadefile);
+        var html = jadetemplate(options);
+        fs.writeFileSync(out, html);
+        this.log('    Done.');
     },
 
     generateAll: function() {
